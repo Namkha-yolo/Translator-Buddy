@@ -15,12 +15,16 @@ class SpeechRecognitionModule {
         }
         
         this.isRecording = false;
+        this.silenceTimer = null;
+        this.silenceThreshold = 2000; // 2 seconds of silence to trigger auto-stop
+        this.lastSpeechTime = 0;
         
         // Callback placeholders
         this.onInterimResult = () => {};
         this.onFinalResult = () => {};
         this.onDetectedLanguage = () => {};
         this.onError = () => {};
+        this.onSilence = () => {}; // New callback for silence detection
     }
     
     isSupported() {
@@ -38,6 +42,10 @@ class SpeechRecognitionModule {
             
             this.recognition.start();
             this.isRecording = true;
+            this.lastSpeechTime = Date.now();
+            
+            // Start silence detection
+            this.startSilenceDetection();
         } catch (error) {
             console.error('Speech recognition start error:', error);
             this.onError(error.message);
@@ -48,6 +56,7 @@ class SpeechRecognitionModule {
         if (!this.recognition) return;
         
         try {
+            this.clearSilenceDetection();
             this.recognition.stop();
             this.isRecording = false;
         } catch (error) {
@@ -55,9 +64,35 @@ class SpeechRecognitionModule {
         }
     }
     
+    // Setup silence detection
+    startSilenceDetection() {
+        this.clearSilenceDetection(); // Clear any existing timer
+        
+        this.silenceTimer = setInterval(() => {
+            const now = Date.now();
+            const silenceDuration = now - this.lastSpeechTime;
+            
+            if (silenceDuration > this.silenceThreshold && this.isRecording) {
+                // Silence detected for threshold duration
+                this.clearSilenceDetection();
+                this.onSilence(); // Trigger silence callback
+            }
+        }, 500); // Check every 500ms
+    }
+    
+    clearSilenceDetection() {
+        if (this.silenceTimer) {
+            clearInterval(this.silenceTimer);
+            this.silenceTimer = null;
+        }
+    }
+    
     handleResult(event) {
         let interimTranscript = '';
         let finalTranscript = '';
+        
+        // Update last speech time when results come in
+        this.lastSpeechTime = Date.now();
         
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
