@@ -1,4 +1,4 @@
-// Improved application logic for Voice Translation App with robust translation
+// Improved application logic for Voice Translation App with auto-speak feature
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isRecording = false;
     let recognizedText = '';
     let translatedText = '';
+    let autoSpeakEnabled = true; // Auto-speak feature enabled by default
     
     // Check for speech recognition support
     if (!speechRecognition.isSupported()) {
@@ -253,6 +254,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 copyTranslationButton.disabled = false;
                 
                 statusElement.textContent = 'Translation complete';
+                
+                // Auto-speak the translation if enabled
+                if (autoSpeakEnabled) {
+                    // Add a small delay to ensure the UI updates first
+                    setTimeout(() => {
+                        speechSynthesis.speak(translatedText, targetLanguageSelect.value);
+                    }, 300);
+                }
             })
             .catch(error => {
                 console.error('Translation error:', error);
@@ -265,6 +274,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(mockResult => {
                         console.log("Using mock translation:", mockResult);
                         translationTextElement.textContent = `${mockResult} (mock translation)`;
+                        
+                        // Auto-speak the mock translation if enabled
+                        if (autoSpeakEnabled) {
+                            setTimeout(() => {
+                                speechSynthesis.speak(mockResult, targetLanguageSelect.value);
+                            }, 300);
+                        }
                     });
             });
     }
@@ -326,4 +342,4 @@ document.addEventListener('DOMContentLoaded', () => {
         
         return languageNames[mainCode] || langCode;
     }
-});
+}); 
