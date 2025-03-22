@@ -1,13 +1,15 @@
-// Translation service module - GitHub Pages version
-// This version makes direct API calls to Google Translate
+// Translation service module for Voice Translation App
 
 class TranslationService {
     constructor() {
-        // Try to get API key from local storage
-        this.apiKey = localStorage.getItem('googleApiKey') || '';
+        // Hardcoded API key - users won't need to enter it
+        const hardcodedKey = "AIzaSyDrZcAkbvwUIbd7VtA7mk7sCVNTCVpGJpM";
+        
+        // Use hardcoded key or check localStorage as fallback
+        this.apiKey = hardcodedKey || localStorage.getItem('googleApiKey');
     }
     
-    // Set API key
+    // Set API key - keeping this method for potential future customization
     setApiKey(key) {
         if (key && key.trim() !== '') {
             this.apiKey = key.trim();
@@ -26,9 +28,9 @@ class TranslationService {
     async translate(text, sourceLang, targetLang) {
         if (!text) return '';
         
-        // Check for API key
+        // API key is now hardcoded, so this check should always pass
         if (!this.hasApiKey()) {
-            throw new Error('Google Translate API key is required. Please enter your API key.');
+            throw new Error('API key configuration issue. Please contact the administrator.');
         }
         
         try {
