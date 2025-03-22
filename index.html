@@ -3,17 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Translation App</title>
+    <title>Translator Buddy</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4a6fa5;
-            --primary-dark: #385d8a;
-            --secondary: #ff6b6b;
-            --light: #f8f9fa;
-            --dark: #343a40;
-            --gray: #6c757d;
-            --success: #28a745;
+            --primary: #5b7cfa;
+            --primary-dark: #4a69e5;
+            --secondary: #ff5a76;
+            --light: #f9fafb;
+            --dark: #1f2937;
+            --gray: #9ca3af;
+            --success: #10b981;
+            --card-bg: #ffffff;
+            --border-radius: 12px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
         }
         
         * {
@@ -23,7 +30,7 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', sans-serif;
             line-height: 1.6;
             color: var(--dark);
             background-color: var(--light);
@@ -40,16 +47,15 @@
         h1 {
             color: var(--primary);
             margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 2.5rem;
         }
         
         .app-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+            gap: 24px;
+            background-color: transparent;
             margin-bottom: 20px;
         }
         
@@ -59,47 +65,69 @@
             }
         }
         
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            transition: var(--transition);
+        }
+        
         .controls {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            background-color: var(--light);
-            border-radius: 10px;
         }
         
         .language-selector {
             display: flex;
             width: 100%;
             justify-content: space-between;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+            align-items: center;
         }
         
         .language-selector select {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
             background-color: white;
             font-size: 1rem;
             width: 45%;
+            font-family: 'Poppins', sans-serif;
+            transition: var(--transition);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+        
+        .language-selector select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 124, 250, 0.1);
         }
         
         .language-selector .swap-btn {
             background-color: var(--primary);
             color: white;
-            width: 38px;
-            height: 38px;
+            width: 42px;
+            height: 42px;
             border: none;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(91, 124, 250, 0.3);
         }
         
         .language-selector .swap-btn:hover {
             background-color: var(--primary-dark);
+            transform: translateY(-2px);
         }
         
         .record-btn {
@@ -114,22 +142,28 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
+            margin-bottom: 24px;
+            transition: var(--transition);
+            box-shadow: 0 4px 14px rgba(91, 124, 250, 0.3);
         }
         
         .record-btn:hover {
             background-color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(91, 124, 250, 0.4);
         }
         
         .record-btn:disabled {
             background-color: var(--gray);
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         
         .record-btn.recording {
             background-color: var(--secondary);
             animation: pulse 1.5s infinite;
+            box-shadow: 0 4px 14px rgba(255, 90, 118, 0.4);
         }
         
         @keyframes pulse {
@@ -139,44 +173,58 @@
         }
         
         .record-btn i {
-            font-size: 2rem;
+            font-size: 2.5rem;
         }
         
         .transcript-container {
-            padding: 20px;
-            background-color: var(--light);
-            border-radius: 10px;
-            height: 100%;
+            padding: 0;
             display: flex;
             flex-direction: column;
+            height: 100%;
+        }
+        
+        .transcript-container h3 {
+            margin-bottom: 12px;
+            font-weight: 500;
+            color: var(--dark);
+            font-size: 1.1rem;
         }
         
         .transcript-box {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 16px;
             background-color: white;
-            min-height: 150px;
+            min-height: 120px;
             overflow-y: auto;
             flex-grow: 1;
+            transition: var(--transition);
+        }
+        
+        .transcript-box:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 124, 250, 0.1);
         }
         
         .action-buttons {
             display: flex;
             justify-content: space-between;
-            margin-top: 10px;
+            margin-top: 12px;
+            margin-bottom: 24px;
         }
         
         .btn {
-            padding: 10px 15px;
+            padding: 10px 18px;
             border: none;
-            border-radius: 5px;
+            border-radius: var(--border-radius);
             cursor: pointer;
             font-size: 0.9rem;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
+            transition: var(--transition);
+            font-family: 'Poppins', sans-serif;
         }
         
         .primary-btn {
@@ -186,31 +234,36 @@
         
         .primary-btn:hover {
             background-color: var(--primary-dark);
+            transform: translateY(-2px);
         }
         
         .primary-btn:disabled {
             background-color: var(--gray);
             cursor: not-allowed;
+            transform: none;
         }
         
         .status {
             text-align: center;
-            margin-top: 10px;
+            margin-top: 16px;
             font-style: italic;
             color: var(--gray);
+            font-size: 0.9rem;
         }
         
         .error-message {
             color: var(--secondary);
             text-align: center;
-            margin-top: 10px;
+            margin-top: 16px;
+            font-size: 0.9rem;
         }
         
         .language-detected {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--gray);
             margin-top: 5px;
             font-style: italic;
+            margin-bottom: 12px;
         }
         
         .fade-in {
@@ -226,7 +279,7 @@
         .audio-visualizer {
             width: 100%;
             height: 50px;
-            margin-top: 20px;
+            margin-top: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -243,42 +296,79 @@
         
         /* API key input */
         .api-key-container {
-            margin-top: 20px;
+            margin-top: 30px;
             width: 100%;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.4s ease-out;
+        }
+        
+        .api-key-container.show {
+            max-height: 150px;
         }
         
         .api-key-input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            width: 80%;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
+            width: 100%;
             font-size: 0.9rem;
+            font-family: 'Poppins', sans-serif;
+            transition: var(--transition);
+            margin-bottom: 10px;
+        }
+        
+        .api-key-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 124, 250, 0.1);
         }
         
         .api-key-save {
-            margin-top: 5px;
-            padding: 8px 12px;
+            padding: 10px 18px;
             background-color: var(--primary);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: var(--border-radius);
             cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: var(--transition);
         }
         
         .api-key-save:hover {
             background-color: var(--primary-dark);
         }
+        
+        .settings-toggle {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 10px auto;
+            padding: 5px 10px;
+            border-radius: 20px;
+            transition: var(--transition);
+        }
+        
+        .settings-toggle:hover {
+            background-color: rgba(91, 124, 250, 0.1);
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Voice Translation App</h1>
+        <h1>Translator Buddy</h1>
         <p>Speak in any language and get instant translations</p>
     </header>
     
     <div class="app-container">
-        <div class="controls">
+        <div class="card controls">
             <div class="language-selector">
                 <select id="sourceLanguage">
                     <option value="auto">Detect Language</option>
@@ -292,7 +382,7 @@
                     <option value="ru-RU">Russian</option>
                     <option value="ja-JP">Japanese</option>
                     <option value="ko-KR">Korean</option>
-                    <option value="zh-CN">Chinese (Simplified)</option>
+                    <option value="zh-CN">Chinese</option>
                     <option value="ar-SA">Arabic</option>
                     <option value="hi-IN">Hindi</option>
                 </select>
@@ -312,7 +402,7 @@
                     <option value="ru-RU">Russian</option>
                     <option value="ja-JP">Japanese</option>
                     <option value="ko-KR">Korean</option>
-                    <option value="zh-CN">Chinese (Simplified)</option>
+                    <option value="zh-CN">Chinese</option>
                     <option value="ar-SA">Arabic</option>
                     <option value="hi-IN">Hindi</option>
                 </select>
@@ -328,14 +418,18 @@
                 <!-- Audio bars will be dynamically generated -->
             </div>
             
-            <div class="api-key-container">
+            <button id="settingsToggle" class="settings-toggle">
+                <i class="fas fa-cog"></i> API Settings
+            </button>
+            
+            <div class="api-key-container" id="apiKeyContainer">
                 <input type="password" id="apiKeyInput" class="api-key-input" placeholder="Enter your Google Translate API Key" />
                 <button id="saveApiKey" class="api-key-save">Save API Key</button>
-                <p class="status" id="apiKeyStatus">API key required for translation</p>
+                <p class="status" id="apiKeyStatus"></p>
             </div>
         </div>
         
-        <div class="transcript-container">
+        <div class="card transcript-container">
             <h3>Original Text</h3>
             <div class="transcript-box" id="originalText"></div>
             <div class="language-detected" id="detectedLanguage"></div>
@@ -349,7 +443,7 @@
                 </button>
             </div>
             
-            <h3 style="margin-top: 20px;">Translation</h3>
+            <h3>Translation</h3>
             <div class="transcript-box" id="translationText"></div>
             
             <div class="action-buttons">
@@ -370,5 +464,13 @@
     <script src="js/translation.js"></script>
     <script src="js/speech-synthesis.js"></script>
     <script src="js/app.js"></script>
+    
+    <script>
+        // Handle settings toggle
+        document.getElementById('settingsToggle').addEventListener('click', function() {
+            const container = document.getElementById('apiKeyContainer');
+            container.classList.toggle('show');
+        });
+    </script>
 </body>
 </html>
