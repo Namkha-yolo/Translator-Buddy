@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveApiKeyButton = document.getElementById('saveApiKey');
     const apiKeyStatus = document.getElementById('apiKeyStatus');
     const apiKeyContainer = document.getElementById('apiKeyContainer');
-    const settingsToggle = document.getElementById('settingsToggle');
     
     // Initialize modules
     const speechRecognition = new SpeechRecognitionModule();
@@ -74,6 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
     copyOriginalButton.addEventListener('click', () => copyToClipboard(recognizedText, 'Original text'));
     copyTranslationButton.addEventListener('click', () => copyToClipboard(translatedText, 'Translation'));
     saveApiKeyButton.addEventListener('click', saveApiKey);
+    
+    // Setup silence detection callback
+    speechRecognition.onSilence = () => {
+        console.log("Silence detected - stopping recording");
+        stopRecording();
+    };
     
     // API Key handling
     function saveApiKey() {
@@ -349,7 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'zh': 'Chinese',
             'ar': 'Arabic',
             'hi': 'Hindi'
-            
         };
         
-        return languageNames[mainCode] ||
+        return languageNames[mainCode] || langCode;
+    }
+});
