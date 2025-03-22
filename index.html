@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Translation App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --primary-dark: #385d8a;
+            --secondary: #ff6b6b;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --gray: #6c757d;
+            --success: #28a745;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background-color: var(--light);
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-color: var(--light);
+            border-radius: 10px;
+        }
+        
+        .language-selector {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .language-selector select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: white;
+            font-size: 1rem;
+            width: 45%;
+        }
+        
+        .language-selector .swap-btn {
+            background-color: var(--primary);
+            color: white;
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .language-selector .swap-btn:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .record-btn {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--primary);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .record-btn:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .record-btn:disabled {
+            background-color: var(--gray);
+            cursor: not-allowed;
+        }
+        
+        .record-btn.recording {
+            background-color: var(--secondary);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .record-btn i {
+            font-size: 2rem;
+        }
+        
+        .transcript-container {
+            padding: 20px;
+            background-color: var(--light);
+            border-radius: 10px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .transcript-box {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: white;
+            min-height: 150px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .primary-btn {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .primary-btn:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .primary-btn:disabled {
+            background-color: var(--gray);
+            cursor: not-allowed;
+        }
+        
+        .status {
+            text-align: center;
+            margin-top: 10px;
+            font-style: italic;
+            color: var(--gray);
+        }
+        
+        .error-message {
+            color: var(--secondary);
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .language-detected {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Audio visualization */
+        .audio-visualizer {
+            width: 100%;
+            height: 50px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+        }
+        
+        .audio-bar {
+            width: 3px;
+            background-color: var(--primary);
+            height: 5px;
+            border-radius: 3px;
+            transition: height 0.1s ease;
+        }
+        
+        /* API key input */
+        .api-key-container {
+            margin-top: 20px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .api-key-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 80%;
+            font-size: 0.9rem;
+        }
+        
+        .api-key-save {
+            margin-top: 5px;
+            padding: 8px 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .api-key-save:hover {
+            background-color: var(--primary-dark);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Voice Translation App</h1>
+        <p>Speak in any language and get instant translations</p>
+    </header>
+    
+    <div class="app-container">
+        <div class="controls">
+            <div class="language-selector">
+                <select id="sourceLanguage">
+                    <option value="auto">Detect Language</option>
+                    <option value="en-US">English</option>
+                    <option value="es-ES">Spanish</option>
+                    <option value="fr-FR">French</option>
+                    <option value="de-DE">German</option>
+                    <option value="it-IT">Italian</option>
+                    <option value="pt-PT">Portuguese</option>
+                    <option value="nl-NL">Dutch</option>
+                    <option value="ru-RU">Russian</option>
+                    <option value="ja-JP">Japanese</option>
+                    <option value="ko-KR">Korean</option>
+                    <option value="zh-CN">Chinese (Simplified)</option>
+                    <option value="ar-SA">Arabic</option>
+                    <option value="hi-IN">Hindi</option>
+                </select>
+                
+                <button class="swap-btn" id="swapLanguages">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+                
+                <select id="targetLanguage">
+                    <option value="en-US">English</option>
+                    <option value="es-ES">Spanish</option>
+                    <option value="fr-FR">French</option>
+                    <option value="de-DE">German</option>
+                    <option value="it-IT">Italian</option>
+                    <option value="pt-PT">Portuguese</option>
+                    <option value="nl-NL">Dutch</option>
+                    <option value="ru-RU">Russian</option>
+                    <option value="ja-JP">Japanese</option>
+                    <option value="ko-KR">Korean</option>
+                    <option value="zh-CN">Chinese (Simplified)</option>
+                    <option value="ar-SA">Arabic</option>
+                    <option value="hi-IN">Hindi</option>
+                </select>
+            </div>
+            
+            <button id="recordButton" class="record-btn">
+                <i class="fas fa-microphone"></i>
+            </button>
+            
+            <div class="status" id="status">Ready to translate</div>
+            
+            <div class="audio-visualizer" id="audioVisualizer">
+                <!-- Audio bars will be dynamically generated -->
+            </div>
+            
+            <div class="api-key-container">
+                <input type="password" id="apiKeyInput" class="api-key-input" placeholder="Enter your Google Translate API Key" />
+                <button id="saveApiKey" class="api-key-save">Save API Key</button>
+                <p class="status" id="apiKeyStatus">API key required for translation</p>
+            </div>
+        </div>
+        
+        <div class="transcript-container">
+            <h3>Original Text</h3>
+            <div class="transcript-box" id="originalText"></div>
+            <div class="language-detected" id="detectedLanguage"></div>
+            
+            <div class="action-buttons">
+                <button class="btn primary-btn" id="speakOriginal" disabled>
+                    <i class="fas fa-volume-up"></i> Play
+                </button>
+                <button class="btn primary-btn" id="copyOriginal" disabled>
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            
+            <h3 style="margin-top: 20px;">Translation</h3>
+            <div class="transcript-box" id="translationText"></div>
+            
+            <div class="action-buttons">
+                <button class="btn primary-btn" id="speakTranslation" disabled>
+                    <i class="fas fa-volume-up"></i> Play
+                </button>
+                <button class="btn primary-btn" id="copyTranslation" disabled>
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="error-message" id="errorMessage"></div>
+    
+    <!-- JavaScript Files -->
+    <script src="js/speech-recognition.js"></script>
+    <script src="js/translation.js"></script>
+    <script src="js/speech-synthesis.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
