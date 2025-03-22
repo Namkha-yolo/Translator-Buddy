@@ -1,3 +1,5 @@
+// Speech recognition module for Voice Translation App
+
 class SpeechRecognitionModule {
     constructor() {
         this.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -76,10 +78,15 @@ class SpeechRecognitionModule {
         }
         
         // Check for detected language
-        if (event.results[0].isFinal) {
-            const detectedLang = event.results[0][0].lang;
-            if (detectedLang) {
-                this.onDetectedLanguage(detectedLang);
+        if (event.results[0] && event.results[0].isFinal) {
+            try {
+                const detectedLang = event.results[0][0].lang;
+                if (detectedLang) {
+                    this.onDetectedLanguage(detectedLang);
+                }
+            } catch (e) {
+                // Some browsers might not support language detection
+                console.log("Language detection not available");
             }
         }
     }
@@ -95,6 +102,7 @@ class SpeechRecognitionModule {
                 this.recognition.start();
             } catch (e) {
                 // Ignore errors when trying to restart
+                this.isRecording = false;
             }
         }
     }
