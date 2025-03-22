@@ -1,4 +1,4 @@
-// Improved application logic for Voice Translation App with auto-speak feature
+// Application logic for Voice Translation App with simultaneous translation
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -33,8 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Variables
     let isRecording = false;
     let recognizedText = '';
+    let interimText = '';
+    let lastTranslatedLength = 0;
     let translatedText = '';
+    let translationInProgress = false;
+    let translationQueue = [];
+    let translationDebounceTimer = null;
+    const TRANSLATION_DEBOUNCE_MS = 300; // Short debounce time for quick updates
     let autoSpeakEnabled = true; // Auto-speak feature enabled by default
+    let currentUtterance = null; // Track current speech synthesis utterance
     
     // Check for speech recognition support
     if (!speechRecognition.isSupported()) {
@@ -69,14 +76,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Speech recognition events
     speechRecognition.onInterimResult = (interimTranscript) => {
-        console.log("Interim result:", interimTranscript);
-        const displayText = recognizedText + (interimTranscript ? ` <i>${interimTranscript}</i>` : '');
+        interimText = interimTranscript;
+        const displayText = recognizedText + (interimText ? ` <i>${interimText}</i>` : '');
         originalTextElement.innerHTML = displayText || '<i>Listening...</i>';
+        
+        // Continuously translate interim results for simultaneous translation
+        if (interimText && interimText.length > 1) {
+            const fullText = recognizedText + ' ' + interimText;
+            debouncedTranslate(fullText);
+        }
     };
     
     speechRecognition.onFinalResult = (finalTranscript) => {
         console.log("Final transcript:", finalTranscript);
-        recognizedText = finalTranscript;
+        recognizedText += (recognizedText ? ' ' : '') + finalTranscript;
+        interimText = '';
         originalTextElement.textContent = recognizedText;
         
         // Enable buttons if we have text
@@ -84,8 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
             speakOriginalButton.disabled = false;
             copyOriginalButton.disabled = false;
             
-            // Immediately translate the final text
-            translateText(recognizedText);
+            // Translate the final text
+            debouncedTranslate(recognizedText, false); // false = not interim
         }
     };
     
@@ -102,6 +116,29 @@ document.addEventListener('DOMContentLoaded', () => {
         resetRecordingState();
     };
     
+    // Debounced translation function to prevent too many API calls
+    function debouncedTranslate(text, isInterim = true) {
+        // Don't translate if too short
+        if (text.length < 2) return;
+        
+        // Cancel previous timer
+        if (translationDebounceTimer) {
+            clearTimeout(translationDebounceTimer);
+            translationDebounceTimer = null;
+        }
+        
+        // Set new timer
+        translationDebounceTimer = setTimeout(() => {
+            // If translation is already in progress, queue this request
+            if (translationInProgress) {
+                translationQueue.push({ text, isInterim });
+                return;
+            }
+            
+            translateText(text, isInterim);
+        }, isInterim ? TRANSLATION_DEBOUNCE_MS : 0); // No delay for final translations
+    }
+    
     // Functions
     function toggleRecording() {
         if (isRecording) {
@@ -113,13 +150,27 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function startRecording() {
         try {
+            // Stop any ongoing speech
+            if (autoSpeakEnabled && speechSynthesis) {
+                speechSynthesis.cancel();
+            }
+            
             // Reset previous data
             recognizedText = '';
+            interimText = '';
             translatedText = '';
+            lastTranslatedLength = 0;
             originalTextElement.textContent = '';
             translationTextElement.textContent = '';
             detectedLanguageElement.textContent = '';
             errorMessageElement.textContent = '';
+            translationQueue = [];
+            
+            // Cancel any pending translations
+            if (translationDebounceTimer) {
+                clearTimeout(translationDebounceTimer);
+                translationDebounceTimer = null;
+            }
             
             // Update UI
             recordButton.classList.add('recording');
@@ -158,13 +209,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Update UI
             resetRecordingState();
-            statusElement.textContent = 'Processing translation...';
             
-            // If we have recognized text, translate it
-            if (recognizedText) {
-                translateText(recognizedText);
-            } else {
+            // If we have recognized text but no translation, do a final translation
+            if (recognizedText && !translatedText) {
+                statusElement.textContent = 'Finalizing translation...';
+                translateText(recognizedText, false);
+            } else if (!recognizedText) {
                 statusElement.textContent = 'No speech detected. Try again.';
+            } else {
+                statusElement.textContent = 'Translation complete';
             }
         }
     }
@@ -216,73 +269,114 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
     
-    function translateText(text) {
+    function translateText(text, isInterim = false) {
         if (!text) return;
-        
-        console.log("Translating text:", text);
-        console.log("From language:", sourceLanguageSelect.value);
-        console.log("To language:", targetLanguageSelect.value);
         
         // Check if translation service is available
         if (!translationService) {
             console.error("Translation service not initialized");
-            errorMessageElement.textContent = "Translation service not available";
+            if (!isInterim) errorMessageElement.textContent = "Translation service not available";
             return;
         }
         
         // Check if translate method exists
         if (typeof translationService.translate !== 'function') {
             console.error("Translation method not found");
-            errorMessageElement.textContent = "Translation method not available";
+            if (!isInterim) errorMessageElement.textContent = "Translation method not available";
             return;
         }
         
-        statusElement.textContent = 'Translating...';
+        // Mark translation as in progress
+        translationInProgress = true;
         
-        // Clear previous translations
-        translationTextElement.textContent = 'Translating...';
+        // Show status only for non-interim translations
+        if (!isInterim) {
+            statusElement.textContent = 'Translating...';
+        }
         
         // Call the translation service
         translationService.translate(text, sourceLanguageSelect.value, targetLanguageSelect.value)
             .then(result => {
-                console.log("Translation result:", result);
                 translatedText = result;
+                
+                // Update the translation display
                 translationTextElement.textContent = result;
                 
                 // Enable buttons
                 speakTranslationButton.disabled = false;
                 copyTranslationButton.disabled = false;
                 
-                statusElement.textContent = 'Translation complete';
-                
-                // Auto-speak the translation if enabled
-                if (autoSpeakEnabled) {
-                    // Add a small delay to ensure the UI updates first
-                    setTimeout(() => {
+                // For non-interim (final) translations
+                if (!isInterim) {
+                    statusElement.textContent = 'Translation complete';
+                    
+                    // Auto-speak the complete translation if enabled
+                    if (autoSpeakEnabled) {
+                        // Cancel any ongoing speech
+                        speechSynthesis.cancel();
+                        // Speak the full translation
                         speechSynthesis.speak(translatedText, targetLanguageSelect.value);
-                    }, 300);
+                    }
+                } 
+                // For interim translations, speak only the new part if there's significant new content
+                else if (autoSpeakEnabled && result.length > lastTranslatedLength + 5) {
+                    // Try to get only the new part of the translation
+                    const newPart = result.substring(lastTranslatedLength).trim();
+                    if (newPart.length > 0) {
+                        // Cancel any ongoing speech if we have new content
+                        speechSynthesis.cancel();
+                        // Speak only the new part
+                        speechSynthesis.speak(newPart, targetLanguageSelect.value);
+                    }
+                    // Update the last translated length
+                    lastTranslatedLength = result.length;
                 }
+                
+                // Translation is no longer in progress
+                translationInProgress = false;
+                
+                // Process next item in queue if available
+                processNextTranslation();
             })
             .catch(error => {
                 console.error('Translation error:', error);
-                errorMessageElement.textContent = `Translation error: ${error.message || "Unknown error"}`;
-                statusElement.textContent = 'Translation failed';
-                translationTextElement.textContent = 'Translation failed. Please try again.';
                 
-                // Provide a fallback using mockTranslate for development/testing
-                translationService.mockTranslate(text, sourceLanguageSelect.value, targetLanguageSelect.value)
-                    .then(mockResult => {
-                        console.log("Using mock translation:", mockResult);
-                        translationTextElement.textContent = `${mockResult} (mock translation)`;
-                        
-                        // Auto-speak the mock translation if enabled
-                        if (autoSpeakEnabled) {
-                            setTimeout(() => {
+                // Only show errors for final translations
+                if (!isInterim) {
+                    errorMessageElement.textContent = `Translation error: ${error.message || "Unknown error"}`;
+                    statusElement.textContent = 'Translation failed';
+                    translationTextElement.textContent = 'Translation failed. Please try again.';
+                    
+                    // Use mock translation as fallback
+                    translationService.mockTranslate(text, sourceLanguageSelect.value, targetLanguageSelect.value)
+                        .then(mockResult => {
+                            translationTextElement.textContent = mockResult;
+                            
+                            // Auto-speak the mock translation if enabled
+                            if (autoSpeakEnabled) {
                                 speechSynthesis.speak(mockResult, targetLanguageSelect.value);
-                            }, 300);
-                        }
-                    });
+                            }
+                        });
+                }
+                
+                // Translation is no longer in progress
+                translationInProgress = false;
+                
+                // Process next item in queue if available
+                processNextTranslation();
             });
+    }
+    
+    function processNextTranslation() {
+        // Check if there are items in the queue
+        if (translationQueue.length > 0) {
+            // Get the most recent translation request
+            const nextTranslation = translationQueue.pop();
+            // Clear the rest of the queue
+            translationQueue = [];
+            // Process the translation
+            translateText(nextTranslation.text, nextTranslation.isInterim);
+        }
     }
     
     function copyToClipboard(text, label) {
@@ -342,4 +436,4 @@ document.addEventListener('DOMContentLoaded', () => {
         
         return languageNames[mainCode] || langCode;
     }
-}); 
+});
