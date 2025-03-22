@@ -1,4 +1,4 @@
-// Main application logic for GitHub Pages version
+// Main application logic for Voice Translation App
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiKeyInput = document.getElementById('apiKeyInput');
     const saveApiKeyButton = document.getElementById('saveApiKey');
     const apiKeyStatus = document.getElementById('apiKeyStatus');
+    const apiKeyContainer = document.getElementById('apiKeyContainer');
+    const settingsToggle = document.getElementById('settingsToggle');
     
     // Initialize modules
     const speechRecognition = new SpeechRecognitionModule();
@@ -46,10 +48,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Initialize API key from storage
-    if (translationService.hasApiKey()) {
-        apiKeyInput.value = '************'; // Don't show actual key
-        apiKeyStatus.textContent = 'API key saved';
-        apiKeyStatus.style.color = 'green';
+    initializeApiKey();
+    
+    function initializeApiKey() {
+        if (translationService.hasApiKey()) {
+            apiKeyInput.value = '••••••••••••'; // Don't show actual key
+            apiKeyStatus.textContent = 'API key saved';
+            apiKeyStatus.style.color = 'green';
+            
+            // If API key exists, hide the API key container by default
+            apiKeyContainer.classList.remove('show');
+        } else {
+            // Show API key input if no key exists
+            apiKeyContainer.classList.add('show');
+            apiKeyStatus.textContent = 'API key required for translation';
+            apiKeyStatus.style.color = '#9ca3af';
+        }
     }
     
     // Event Listeners
@@ -66,20 +80,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = apiKeyInput.value.trim();
         if (key === '') {
             apiKeyStatus.textContent = 'Please enter a valid API key';
-            apiKeyStatus.style.color = 'red';
+            apiKeyStatus.style.color = '#ff5a76';
             return;
         }
         
         if (translationService.setApiKey(key)) {
-            apiKeyInput.value = '************'; // Replace with asterisks for security
+            apiKeyInput.value = '••••••••••••'; // Replace with dots for security
             apiKeyStatus.textContent = 'API key saved successfully';
-            apiKeyStatus.style.color = 'green';
+            apiKeyStatus.style.color = '#10b981';
+            
+            // Hide API key container after saving
+            setTimeout(() => {
+                apiKeyContainer.classList.remove('show');
+            }, 1500);
             
             // Clear any previous error messages
             errorMessageElement.textContent = '';
         } else {
             apiKeyStatus.textContent = 'Invalid API key format';
-            apiKeyStatus.style.color = 'red';
+            apiKeyStatus.style.color = '#ff5a76';
         }
     }
     
@@ -123,8 +142,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function startRecording() {
         try {
+            // Check for API key
+            if (!translationService.hasApiKey()) {
+                apiKeyContainer.classList.add('show');
+                errorMessageElement.textContent = 'Please enter your Google Translate API key before recording';
+                return;
+            }
+            
             // Reset previous data
-            audioChunks = [];
             recognizedText = '';
             translatedText = '';
             originalTextElement.textContent = '';
@@ -232,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Check if API key is set
         if (!translationService.hasApiKey()) {
+            apiKeyContainer.classList.add('show');
             errorMessageElement.textContent = 'Google Translate API key is required. Please enter your API key.';
             statusElement.textContent = 'Translation failed - API key missing';
             return;
@@ -262,8 +288,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // If API key error, prompt the user
                 if (error.message.includes('API key')) {
+                    apiKeyContainer.classList.add('show');
                     apiKeyStatus.textContent = 'Invalid API key. Please check and try again.';
-                    apiKeyStatus.style.color = 'red';
+                    apiKeyStatus.style.color = '#ff5a76';
                     apiKeyInput.value = '';
                 }
             });
@@ -322,8 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'zh': 'Chinese',
             'ar': 'Arabic',
             'hi': 'Hindi'
+            
         };
         
-        return languageNames[mainCode] || langCode;
-    }
-});
+        return languageNames[mainCode] ||
