@@ -16,10 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyOriginalButton = document.getElementById('copyOriginal');
     const copyTranslationButton = document.getElementById('copyTranslation');
     const audioVisualizer = document.getElementById('audioVisualizer');
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    const saveApiKeyButton = document.getElementById('saveApiKey');
-    const apiKeyStatus = document.getElementById('apiKeyStatus');
-    const apiKeyContainer = document.getElementById('apiKeyContainer');
     
     // Initialize modules
     const speechRecognition = new SpeechRecognitionModule();
@@ -46,24 +42,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    // Initialize API key from storage
-    initializeApiKey();
-    
-    function initializeApiKey() {
-        if (translationService.hasApiKey()) {
-            apiKeyInput.value = '••••••••••••'; // Don't show actual key
-            apiKeyStatus.textContent = 'API key saved';
-            apiKeyStatus.style.color = 'green';
-            
-            // If API key exists, hide the API key container by default
-            apiKeyContainer.classList.remove('show');
-        } else {
-            // Show API key input if no key exists
-            apiKeyContainer.classList.add('show');
-            apiKeyStatus.textContent = 'API key required for translation';
-            apiKeyStatus.style.color = '#9ca3af';
-        }
-    }
+    // Setup silence detection callback
+    speechRecognition.onSilence = () => {
+        console.log("Silence detected - stopping recording");
+        stopRecording();
+    };
     
     // Event Listeners
     recordButton.addEventListener('click', toggleRecording);
@@ -72,40 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     speakTranslationButton.addEventListener('click', () => speechSynthesis.speak(translatedText, targetLanguageSelect.value));
     copyOriginalButton.addEventListener('click', () => copyToClipboard(recognizedText, 'Original text'));
     copyTranslationButton.addEventListener('click', () => copyToClipboard(translatedText, 'Translation'));
-    saveApiKeyButton.addEventListener('click', saveApiKey);
-    
-    // Setup silence detection callback
-    speechRecognition.onSilence = () => {
-        console.log("Silence detected - stopping recording");
-        stopRecording();
-    };
-    
-    // API Key handling
-    function saveApiKey() {
-        const key = apiKeyInput.value.trim();
-        if (key === '') {
-            apiKeyStatus.textContent = 'Please enter a valid API key';
-            apiKeyStatus.style.color = '#ff5a76';
-            return;
-        }
-        
-        if (translationService.setApiKey(key)) {
-            apiKeyInput.value = '••••••••••••'; // Replace with dots for security
-            apiKeyStatus.textContent = 'API key saved successfully';
-            apiKeyStatus.style.color = '#10b981';
-            
-            // Hide API key container after saving
-            setTimeout(() => {
-                apiKeyContainer.classList.remove('show');
-            }, 1500);
-            
-            // Clear any previous error messages
-            errorMessageElement.textContent = '';
-        } else {
-            apiKeyStatus.textContent = 'Invalid API key format';
-            apiKeyStatus.style.color = '#ff5a76';
-        }
-    }
     
     // Speech recognition events
     speechRecognition.onInterimResult = (interimTranscript) => {
@@ -147,13 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function startRecording() {
         try {
-            // Check for API key
-            if (!translationService.hasApiKey()) {
-                apiKeyContainer.classList.add('show');
-                errorMessageElement.textContent = 'Please enter your Google Translate API key before recording';
-                return;
-            }
-            
             // Reset previous data
             recognizedText = '';
             translatedText = '';
@@ -260,14 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function translateText(text) {
         if (!text) return;
         
-        // Check if API key is set
-        if (!translationService.hasApiKey()) {
-            apiKeyContainer.classList.add('show');
-            errorMessageElement.textContent = 'Google Translate API key is required. Please enter your API key.';
-            statusElement.textContent = 'Translation failed - API key missing';
-            return;
-        }
-        
         statusElement.textContent = 'Translating...';
         
         // Clear previous translations
@@ -290,14 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(error => {
                 errorMessageElement.textContent = `Translation error: ${error.message}`;
                 statusElement.textContent = 'Translation failed';
-                
-                // If API key error, prompt the user
-                if (error.message.includes('API key')) {
-                    apiKeyContainer.classList.add('show');
-                    apiKeyStatus.textContent = 'Invalid API key. Please check and try again.';
-                    apiKeyStatus.style.color = '#ff5a76';
-                    apiKeyInput.value = '';
-                }
             });
     }
     
