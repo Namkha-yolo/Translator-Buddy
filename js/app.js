@@ -1,4 +1,4 @@
-// Main application logic for Voice Translation App
+// Improved application logic for Voice Translation App with robust translation
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -56,13 +56,25 @@ document.addEventListener('DOMContentLoaded', () => {
     copyOriginalButton.addEventListener('click', () => copyToClipboard(recognizedText, 'Original text'));
     copyTranslationButton.addEventListener('click', () => copyToClipboard(translatedText, 'Translation'));
     
+    // Debug translation API to make sure it works
+    console.log("Testing translation API...");
+    translationService.translate("Hello, this is a test", "en-US", "es-ES")
+        .then(result => {
+            console.log("Translation API test successful:", result);
+        })
+        .catch(error => {
+            console.error("Translation API test failed:", error);
+        });
+    
     // Speech recognition events
     speechRecognition.onInterimResult = (interimTranscript) => {
+        console.log("Interim result:", interimTranscript);
         const displayText = recognizedText + (interimTranscript ? ` <i>${interimTranscript}</i>` : '');
         originalTextElement.innerHTML = displayText || '<i>Listening...</i>';
     };
     
     speechRecognition.onFinalResult = (finalTranscript) => {
+        console.log("Final transcript:", finalTranscript);
         recognizedText = finalTranscript;
         originalTextElement.textContent = recognizedText;
         
@@ -70,10 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (recognizedText) {
             speakOriginalButton.disabled = false;
             copyOriginalButton.disabled = false;
+            
+            // Immediately translate the final text
+            translateText(recognizedText);
         }
     };
     
     speechRecognition.onDetectedLanguage = (detectedLang) => {
+        console.log("Detected language:", detectedLang);
         if (sourceLanguageSelect.value === 'auto' && detectedLang) {
             detectedLanguageElement.textContent = `Detected language: ${getLanguageName(detectedLang)}`;
         }
@@ -202,18 +218,35 @@ document.addEventListener('DOMContentLoaded', () => {
     function translateText(text) {
         if (!text) return;
         
+        console.log("Translating text:", text);
+        console.log("From language:", sourceLanguageSelect.value);
+        console.log("To language:", targetLanguageSelect.value);
+        
+        // Check if translation service is available
+        if (!translationService) {
+            console.error("Translation service not initialized");
+            errorMessageElement.textContent = "Translation service not available";
+            return;
+        }
+        
+        // Check if translate method exists
+        if (typeof translationService.translate !== 'function') {
+            console.error("Translation method not found");
+            errorMessageElement.textContent = "Translation method not available";
+            return;
+        }
+        
         statusElement.textContent = 'Translating...';
         
         // Clear previous translations
-        translationTextElement.textContent = '';
-        translationTextElement.classList.remove('fade-in');
+        translationTextElement.textContent = 'Translating...';
         
         // Call the translation service
         translationService.translate(text, sourceLanguageSelect.value, targetLanguageSelect.value)
             .then(result => {
+                console.log("Translation result:", result);
                 translatedText = result;
                 translationTextElement.textContent = result;
-                translationTextElement.classList.add('fade-in');
                 
                 // Enable buttons
                 speakTranslationButton.disabled = false;
@@ -222,8 +255,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusElement.textContent = 'Translation complete';
             })
             .catch(error => {
-                errorMessageElement.textContent = `Translation error: ${error.message}`;
+                console.error('Translation error:', error);
+                errorMessageElement.textContent = `Translation error: ${error.message || "Unknown error"}`;
                 statusElement.textContent = 'Translation failed';
+                translationTextElement.textContent = 'Translation failed. Please try again.';
+                
+                // Provide a fallback using mockTranslate for development/testing
+                translationService.mockTranslate(text, sourceLanguageSelect.value, targetLanguageSelect.value)
+                    .then(mockResult => {
+                        console.log("Using mock translation:", mockResult);
+                        translationTextElement.textContent = `${mockResult} (mock translation)`;
+                    });
             });
     }
     
