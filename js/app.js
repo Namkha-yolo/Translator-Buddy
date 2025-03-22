@@ -432,6 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'zh': 'Chinese',
             'ar': 'Arabic',
             'hi': 'Hindi'
+            'bo': 'Tibetan'  
         };
         
         return languageNames[mainCode] || langCode;
