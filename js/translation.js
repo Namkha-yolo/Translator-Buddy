@@ -8,6 +8,9 @@ class TranslationService {
         // Use hardcoded key or check localStorage as fallback
         this.apiKey = hardcodedKey || localStorage.getItem('googleApiKey');
         
+        // Initialize Monlam.ai translation service for Tibetan
+        this.monlamService = new MonlamTranslationService();
+        
         console.log("Translation service initialized. API key exists:", !!this.apiKey);
     }
     
@@ -26,7 +29,7 @@ class TranslationService {
         return this.apiKey && this.apiKey.trim() !== '';
     }
     
-    // Translate text using Google Translate API
+    // Translate text using appropriate service based on language
     async translate(text, sourceLang, targetLang) {
         if (!text) {
             console.error("No text provided for translation");
@@ -34,6 +37,24 @@ class TranslationService {
         }
         
         console.log(`Starting translation request: ${text.substring(0, 30)}... from ${sourceLang} to ${targetLang}`);
+        
+        // Check if this translation involves Tibetan language
+        const isTibetanTranslation = sourceLang === 'bo' || targetLang === 'bo';
+        
+        // Use Monlam.ai for Tibetan translations
+        if (isTibetanTranslation) {
+            try {
+                console.log("Using Monlam.ai for Tibetan translation");
+                return await this.monlamService.translate(text, sourceLang, targetLang);
+            } catch (error) {
+                console.error("Monlam.ai translation failed:", error);
+                // Fall back to Google Translate for non-critical errors
+                if (error.message === 'Translation was cancelled') {
+                    throw error;
+                }
+                console.log("Falling back to Google Translate");
+            }
+        }
         
         // API key is now hardcoded, so this check should always pass
         if (!this.hasApiKey()) {
